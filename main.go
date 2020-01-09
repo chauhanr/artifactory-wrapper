@@ -52,11 +52,11 @@ func Upload(w http.ResponseWriter, r *http.Request) {
 		}
 		/* Now we need to send the temp file to the Artifactory Client*/
 		tmp.Write(fb)
-		err = PublishToArtifactory(tmp, repo, fw, v, handler.Filename)
+		out, err := PublishToArtifactory(tmp, repo, fw, v, handler.Filename)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		} else {
-			io.WriteString(w, "Successfully uploaded file to Artifactory")
+			io.WriteString(w, out)
 		}
 	} else {
 		http.Error(w, "Unsupported method type", http.StatusBadRequest)
@@ -66,38 +66,33 @@ func Upload(w http.ResponseWriter, r *http.Request) {
 
 var BASE_URL = "http://localhost:8081/artifactory"
 
-func PublishToArtifactory(data *os.File, repo string, framework string, version string, fname string) error {
-	/*data, err := os.Open(dataFile)
-	if err != nil {
-		return err
-	}
-	defer data.Close()*/
+func PublishToArtifactory(data *os.File, repo string, framework string, version string, fname string) (string, error) {
 
 	url := prepareArtifactoryUploadURL(repo, framework, version, fname)
 	r, err := http.NewRequest("PUT", url, data)
 
 	if err != nil {
 		log.Printf("Error preparing the new request %s\n", err)
-		return err
+		return "", err
 	}
 	r.SetBasicAuth("admin", "password")
 	client := &http.Client{}
 	res, err := client.Do(r)
+	defer res.Body.Close()
 	if err != nil {
 		log.Printf("Error publishing the file to artifactory %s\n", err)
 	}
 	code := res.StatusCode
 
 	bs, _ := ioutil.ReadAll(res.Body)
-	fmt.Printf("Artifactory Status Code %d, Response Body: %s\n", code, string(bs))
+	out := string(bs)
+	//fmt.Printf("Artifactory Status Code %d, Response Body: %s\n", code,out)
 
 	if !(code == 200 || code == 201) {
 		log.Printf("Error uploading file to artifactory %d\n", code)
-		return errors.New("Unable to upload file successfully to artifactory")
+		return "", errors.New("Unable to upload file successfully to artifactory")
 	}
-
-	defer res.Body.Close()
-	return nil
+	return out, nil
 }
 
 func prepareArtifactoryUploadURL(repo, framework, version, filename string) string {
