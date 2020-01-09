@@ -52,7 +52,7 @@ func Upload(w http.ResponseWriter, r *http.Request) {
 		}
 		log.Printf("Size of the new file: %d\n", in.Size)
 		/* Now we need to send the temp file to the Artifactory Client*/
-		err = PublishToArtifactory(tmp, "cocoapods-local", "HelloWorldSDK", "0.0.1")
+		err = PublishToArtifactory(tmp, "mvn-local", "HelloWorldSDK", "0.0.1", handler.Filename)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		} else {
@@ -66,32 +66,35 @@ func Upload(w http.ResponseWriter, r *http.Request) {
 
 var BASE_URL = "http://localhost:8080/artifactory"
 
-func PublishToArtifactory(data *os.File, repo string, framework string, version string) error {
-	url := prepareArtifactoryUploadURL(repo, framework, version)
+func PublishToArtifactory(data *os.File, repo string, framework string, version string, fname string) error {
+	url := prepareArtifactoryUploadURL(repo, framework, version, fname)
 	r, err := http.NewRequest("PUT", url, data)
 	if err != nil {
 		log.Printf("Error preparing the new request %s\n", err)
 		return err
 	}
+	r.SetBasicAuth("admin", "password") 
 	client := &http.Client{}
 	res, err := client.Do(r)
 	if err != nil {
 		log.Printf("Error publishing the file to artifactory %s\n", err)
 	}
 	code := res.StatusCode
+	
+	bs, _ := ioutil.ReadAll(res.Body)
+	fmt.Printf("Artifactory Status Code %d, Response Body: %s\n", code, string(bs))
 
 	if code != 200 || code != 201 {
-		log.Printf("Error uploading file to artifactory %s\n", err)
+		log.Printf("Error uploading file to artifactory %d\n", code)
 		return errors.New("Unable to upload file successfully to artifactory")
 	}
-	bs, _ := ioutil.ReadAll(res.Body)
-	fmt.Printf("Artifactory Response Body: %s\n", string(bs))
+	
 	defer res.Body.Close()
 	return nil
 }
 
-func prepareArtifactoryUploadURL(repo, framework, version string) string {
-	url := fmt.Sprintf("%s/%s/%s/%s/", BASE_URL, repo, framework, version)
+func prepareArtifactoryUploadURL(repo, framework, version, filename string) string {
+	url := fmt.Sprintf("%s/%s/%s/%s/%s", BASE_URL, repo, framework, version, filename)
 	fmt.Printf("URL: %s\n", url)
 	return url
 }
