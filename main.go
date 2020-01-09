@@ -43,7 +43,6 @@ func Upload(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		/* err = ioutil.WriteFile(handler.Filename, fb, 0644)*/
 		tmp, err := ioutil.TempFile("", "sdk-binary")
 		defer tmp.Close()
 		if err != nil {
@@ -82,7 +81,6 @@ func PublishToArtifactory(data *os.File, repo string, framework string, version 
 		return err
 	}
 	r.SetBasicAuth("admin", "password")
-	//r.Header.Set("Content-Type", "text/plain")
 	client := &http.Client{}
 	res, err := client.Do(r)
 	if err != nil {
