@@ -25,6 +25,9 @@ func setRoutes() {
 func Upload(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPut {
 		r.ParseMultipartForm(10 << 20)
+		fw := r.Header.Get("framework")
+		v := r.Header.Get("version")
+		repo := r.Header.Get("repo")
 		/* not getting the file from the form.*/
 		file, handler, err := r.FormFile("sdk-binary")
 		if err != nil {
@@ -47,7 +50,7 @@ func Upload(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		/* Now we need to send the temp file to the Artifactory Client*/
-		err = PublishToArtifactory(handler.Filename, "mvn-local", "HelloWorldSDK", "0.0.1", handler.Filename)
+		err = PublishToArtifactory(handler.Filename, repo, fw, v, handler.Filename)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		} else {
@@ -75,7 +78,7 @@ func PublishToArtifactory(dataFile string, repo string, framework string, versio
 		return err
 	}
 	r.SetBasicAuth("admin", "password")
-	r.Header.Set("Content-Type", "text/plain")
+	//r.Header.Set("Content-Type", "text/plain")
 	client := &http.Client{}
 	res, err := client.Do(r)
 	if err != nil {
