@@ -59,7 +59,7 @@ func Upload(w http.ResponseWriter, r *http.Request) {
 
 }
 
-var BASE_URL = "http://localhost:8080/artifactory"
+var BASE_URL = "http://localhost:8081/artifactory"
 
 func PublishToArtifactory(dataFile string, repo string, framework string, version string, fname string) error {
 	data, err := os.Open(dataFile)
@@ -86,7 +86,7 @@ func PublishToArtifactory(dataFile string, repo string, framework string, versio
 	bs, _ := ioutil.ReadAll(res.Body)
 	fmt.Printf("Artifactory Status Code %d, Response Body: %s\n", code, string(bs))
 
-	if code != 200 || code != 201 {
+	if !(code == 200 || code == 201) {
 		log.Printf("Error uploading file to artifactory %d\n", code)
 		return errors.New("Unable to upload file successfully to artifactory")
 	}
