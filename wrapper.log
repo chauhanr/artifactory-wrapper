@@ -1,0 +1,9 @@
+2020/01/09 06:03:58 [Artifactory Wrapper service starting ...]
+2020/01/09 06:04:14 Check successful.
+2020/01/09 06:04:14 Check successful.
+2020/01/09 06:04:20 Check successful.
+2020/01/09 06:04:21 Check successful.
+2020/01/09 06:15:51 Error retriving sdk binary multipart: NextPart: EOF
+2020/01/09 06:17:36 Upload file: jms-connect-1.0-SNAPSHOT.jar size: 34390526 header: map[Content-Disposition:[form-data; name="sdk-binary"; filename="jms-connect-1.0-SNAPSHOT.jar"] Content-Type:[application/java-archive]]
+URL: https://artifactory-oss.hclets.com/artifactory/mvn-local/com/hcl/coe/qr/0.0.1/jms-connect-1.0-SNAPSHOT.jar
+2020/01/09 06:18:50 Error uploading file to artifactory 405

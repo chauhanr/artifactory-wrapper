@@ -20,7 +20,14 @@ func main() {
 
 func setRoutes() {
 	http.HandleFunc("/upload", Upload)
+	http.HandleFunc("/", CheckServer)
 	log.Fatal(http.ListenAndServe(port, nil))
+}
+
+
+func CheckServer(w http.ResponseWriter, r *http.Request){
+	log.Println("Check successful.")
+	io.WriteString(w, "The artifactory wrapper server is up") 
 }
 
 func Upload(w http.ResponseWriter, r *http.Request) {
