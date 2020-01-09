@@ -66,13 +66,16 @@ func PublishToArtifactory(dataFile string, repo string, framework string, versio
 	if err != nil {
 		return err
 	}
+	defer data.Close()
 	url := prepareArtifactoryUploadURL(repo, framework, version, fname)
 	r, err := http.NewRequest("PUT", url, data)
+
 	if err != nil {
 		log.Printf("Error preparing the new request %s\n", err)
 		return err
 	}
 	r.SetBasicAuth("admin", "password")
+	r.Header.Set("Content-Type", "text/plain")
 	client := &http.Client{}
 	res, err := client.Do(r)
 	if err != nil {
