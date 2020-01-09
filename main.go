@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 )
 
 var port = ":8080"
@@ -24,9 +25,11 @@ func setRoutes() {
 
 func Upload(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPut {
-		r.ParseMultipartForm(10 << 20)
-		fw := r.Header.Get("framework")
+		r.ParseMultipartForm(10000000)
+		groupId := r.Header.Get("groupId")
+		artifactId := r.Header.Get("artifactId")
 		v := r.Header.Get("version")
+
 		repo := r.Header.Get("repo")
 		/* not getting the file from the form.*/
 		file, handler, err := r.FormFile("sdk-binary")
@@ -42,17 +45,15 @@ func Upload(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "error reading from uploaded file", http.StatusInternalServerError)
 			return
 		}
-
-		tmp, err := ioutil.TempFile("", "sdk-binary")
-		defer tmp.Close()
+		err = ioutil.WriteFile(handler.Filename, fb, 0644)
 		if err != nil {
 			log.Printf("Error: %s", err)
 			http.Error(w, "error writing file", http.StatusInternalServerError)
 			return
 		}
-		/* Now we need to send the temp file to the Artifactory Client*/
-		tmp.Write(fb)
-		out, err := PublishToArtifactory(tmp, repo, fw, v, handler.Filename)
+		defer os.Remove(handler.Filename)
+
+		out, err := PublishToArtifactory(handler.Filename, repo, groupId, artifactId, v, handler.Filename)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		} else {
@@ -66,9 +67,13 @@ func Upload(w http.ResponseWriter, r *http.Request) {
 
 var BASE_URL = "http://localhost:8081/artifactory"
 
-func PublishToArtifactory(data *os.File, repo string, framework string, version string, fname string) (string, error) {
+func PublishToArtifactory(dataFile, repo, groupId, artifactId, version, fname string) (string, error) {
+	data, err := os.Open(dataFile)
+	if err != nil {
+		return "", err
+	}
 
-	url := prepareArtifactoryUploadURL(repo, framework, version, fname)
+	url := prepareArtifactoryUploadURL(repo, groupId, artifactId, version, fname)
 	r, err := http.NewRequest("PUT", url, data)
 
 	if err != nil {
@@ -78,16 +83,16 @@ func PublishToArtifactory(data *os.File, repo string, framework string, version 
 	r.SetBasicAuth("admin", "password")
 	client := &http.Client{}
 	res, err := client.Do(r)
-	defer res.Body.Close()
+
 	if err != nil {
 		log.Printf("Error publishing the file to artifactory %s\n", err)
 	}
-	code := res.StatusCode
+	defer res.Body.Close()
 
+	code := res.StatusCode
 	bs, _ := ioutil.ReadAll(res.Body)
 	out := string(bs)
 	//fmt.Printf("Artifactory Status Code %d, Response Body: %s\n", code,out)
-
 	if !(code == 200 || code == 201) {
 		log.Printf("Error uploading file to artifactory %d\n", code)
 		return "", errors.New("Unable to upload file successfully to artifactory")
@@ -95,8 +100,15 @@ func PublishToArtifactory(data *os.File, repo string, framework string, version 
 	return out, nil
 }
 
-func prepareArtifactoryUploadURL(repo, framework, version, filename string) string {
-	url := fmt.Sprintf("%s/%s/%s/%s/%s", BASE_URL, repo, framework, version, filename)
+func prepareArtifactoryUploadURL(repo, groupId, artifactId, version, filename string) string {
+	ngid := transformGroupId(groupId)
+	url := fmt.Sprintf("%s/%s/%s/%s/%s/%s", BASE_URL, repo, ngid, artifactId, version, filename)
 	fmt.Printf("URL: %s\n", url)
+
 	return url
+}
+
+func transformGroupId(groupId string) string {
+	gid := strings.ReplaceAll(groupId, ".", "/")
+	return gid
 }
