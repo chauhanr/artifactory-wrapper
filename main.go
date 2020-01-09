@@ -43,14 +43,17 @@ func Upload(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		err = ioutil.WriteFile(handler.Filename, fb, 0644)
+		/* err = ioutil.WriteFile(handler.Filename, fb, 0644)*/
+		tmp, err := ioutil.TempFile("", "sdk-binary")
+		defer tmp.Close()
 		if err != nil {
 			log.Printf("Error: %s", err)
 			http.Error(w, "error writing file", http.StatusInternalServerError)
 			return
 		}
 		/* Now we need to send the temp file to the Artifactory Client*/
-		err = PublishToArtifactory(handler.Filename, repo, fw, v, handler.Filename)
+		tmp.Write(fb)
+		err = PublishToArtifactory(tmp, repo, fw, v, handler.Filename)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		} else {
@@ -64,12 +67,13 @@ func Upload(w http.ResponseWriter, r *http.Request) {
 
 var BASE_URL = "http://localhost:8081/artifactory"
 
-func PublishToArtifactory(dataFile string, repo string, framework string, version string, fname string) error {
-	data, err := os.Open(dataFile)
+func PublishToArtifactory(data *os.File, repo string, framework string, version string, fname string) error {
+	/*data, err := os.Open(dataFile)
 	if err != nil {
 		return err
 	}
-	defer data.Close()
+	defer data.Close()*/
+
 	url := prepareArtifactoryUploadURL(repo, framework, version, fname)
 	r, err := http.NewRequest("PUT", url, data)
 
