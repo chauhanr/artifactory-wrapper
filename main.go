@@ -12,6 +12,7 @@ import (
 )
 
 var port = ":8080"
+var BASE_URL = "http://localhost:8081/artifactory"
 
 func main() {
 	log.Println("[Artifactory Wrapper service starting ...]")
@@ -112,8 +113,6 @@ func UploadAndroid(w http.ResponseWriter, r *http.Request) {
 	}
 
 }
-
-var BASE_URL = "http://localhost:8081/artifactory"
 
 func PublishToCocoaPodsArtifactory(dataFile, repo, framework, version, fname string) (string, error) {
 	data, err := os.Open(dataFile)
