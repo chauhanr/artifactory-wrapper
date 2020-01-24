@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"io"
@@ -20,9 +21,10 @@ func main() {
 }
 
 func setRoutes() {
-	http.HandleFunc("/upload/android", UploadAndroid)
-	http.HandleFunc("/upload/ios", UploadiOs)
+	//	http.HandleFunc("/upload/android", UploadAndroid)
+	//	http.HandleFunc("/upload/ios", UploadiOs)
 	http.HandleFunc("/", CheckServer)
+	http.HandleFunc("/master-data", ServeFile)
 	log.Fatal(http.ListenAndServe(port, nil))
 }
 
@@ -70,6 +72,21 @@ func UploadiOs(w http.ResponseWriter, r *http.Request) {
 func CheckServer(w http.ResponseWriter, r *http.Request) {
 	log.Println("Check successful.")
 	io.WriteString(w, "The artifactory wrapper server is up")
+}
+
+func ServeFile(w http.ResponseWriter, r *http.Request) {
+	f, err := os.Open("master-data.json")
+	if err != nil {
+		http.Error(w, "error getting master file", http.StatusInternalServerError)
+	}
+
+	md, err := ioutil.ReadAll(bufio.NewReader(f))
+	if err != nil {
+		http.Error(w, "error getting master file", http.StatusInternalServerError)
+		return
+	}
+
+	io.WriteString(w, string(md))
 }
 
 func UploadAndroid(w http.ResponseWriter, r *http.Request) {
